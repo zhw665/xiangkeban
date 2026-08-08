@@ -6,7 +6,7 @@ import { flushQueuedRequests } from "@/lib/offline-queue";
 
 export function PwaRegister() {
   useEffect(() => {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => undefined);
     flushQueuedRequests().catch(() => undefined);
     const sync = () => flushQueuedRequests().catch(() => undefined);
     window.addEventListener("online", sync);
