@@ -1,0 +1,12 @@
+import { ArrowLeft, MessageCircle, PlayCircle, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { PageHeader } from "@/components/page-header";
+import { VideoShare } from "@/components/video-share";
+import { Badge } from "@/components/ui/badge";
+import { getVideoForTeacher } from "@/lib/data";
+import { requireSession } from "@/lib/dal";
+import { formatChineseDate } from "@/lib/utils";
+
+export default async function VideoDetail({ params }: { params: Promise<{ id: string }> }) { const session = await requireSession("teacher"); const { id } = await params; const data = await getVideoForTeacher(id, session.user.id); if (!data) notFound(); const { video } = data; return <main className="page-wrap"><PageHeader title={video.title} description={`${video.knowledgePoint} · 发布于 ${formatChineseDate(video.createdAt)}`} actions={<Link className="side-link border border-zinc-200 bg-white" href="/teacher/videos"><ArrowLeft size={17} />返回微课</Link>} /><div className="content-grid two"><section className="panel"><div className="video-detail-player">{video.fileId ? <video controls preload="metadata" src={`/api/files/${video.fileId}`} /> : <div><PlayCircle size={52} /><p>演示微课暂未绑定本地视频文件</p></div>}</div><div className="panel-body"><p className="text-sm leading-7 text-zinc-700">{video.description}</p><div className="mt-5 border-t border-zinc-100 pt-4"><h3 className="mb-3 text-sm font-bold">分享到其他班级群</h3><VideoShare videoId={video.id} />{data.shares.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{data.shares.map((share) => <Badge tone="green" key={share.id}>已分享：{share.targetClassName}</Badge>)}</div>}</div></div></section><aside className="panel"><div className="panel-header"><h2>同学评论</h2><span className="flex items-center gap-1 text-xs text-zinc-500"><ShieldCheck size={14} />匿名展示</span></div>{data.comments.length ? data.comments.map((comment) => <div className="video-comment" key={comment.id}><span className="avatar">{comment.anonymousLabel.slice(-1)}</span><div><div className="flex items-center gap-2"><strong>{comment.anonymousLabel}</strong><span>{formatChineseDate(comment.createdAt, true)}</span></div><p>{comment.content}</p></div></div>) : <div className="empty-state"><MessageCircle size={30} className="text-zinc-400" /><p>暂时还没有评论</p></div>}<div className="border-t border-zinc-100 p-4 text-xs leading-6 text-zinc-500">教师端不会显示评论学生的真实姓名，避免公开评价压力。</div></aside></div></main>; }

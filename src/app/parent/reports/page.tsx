@@ -1,0 +1,8 @@
+import { FileChartColumn, Sparkles } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { SpeakButton } from "@/components/speak-button";
+import { Badge } from "@/components/ui/badge";
+import { getParentData } from "@/lib/data";
+import { requireSession } from "@/lib/dal";
+
+export default async function ReportsPage() { const session = await requireSession("parent"); const data = await getParentData(session.user.id); if (!data) return null; return <main className="page-wrap"><PageHeader title="学情简报" description="用具体事实了解孩子的进展，不比较、不贴标签" />{data.reports.map((report) => <section className="panel mb-5" key={report.id}><div className="panel-header"><div className="flex items-center gap-2"><FileChartColumn size={19} /><h2>{report.weekStart} 这一周</h2></div><SpeakButton text={`${report.summary}。${report.accomplishments}。${report.needsHelp}。${report.familyActions}`} /></div><div className="panel-body"><p className="mb-5 text-base font-bold leading-8">{report.summary}</p><div className="grid gap-4 md:grid-cols-3"><div className="rounded-md bg-emerald-50 p-4"><Badge tone="green">完成情况</Badge><p className="mt-3 leading-8">{report.accomplishments}</p></div><div className="rounded-md bg-amber-50 p-4"><Badge tone="amber">需要支持</Badge><p className="mt-3 leading-8">{report.needsHelp}</p></div><div className="rounded-md bg-sky-50 p-4"><Badge tone="blue">家庭行动</Badge><p className="mt-3 leading-8">{report.familyActions}</p></div></div><p className="mt-4 flex items-center gap-2 text-xs text-zinc-500"><Sparkles size={14} />由系统整理，教师可核对；不用于学生排名。</p></div></section>)}</main>; }

@@ -1,0 +1,10 @@
+import { FileVideo, PlayCircle, Upload } from "lucide-react";
+import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { VideoPublisher } from "@/components/video-publisher";
+import { Badge } from "@/components/ui/badge";
+import { getTeacherData } from "@/lib/data";
+import { requireSession } from "@/lib/dal";
+import { formatChineseDate } from "@/lib/utils";
+
+export default async function VideosPage() { const session = await requireSession("teacher"); const data = await getTeacherData(session.user.id); if (!data) return null; return <main className="page-wrap"><PageHeader title="微课" description="上传已经制作好的讲解视频并发布给班级，建议一个视频只讲一个知识点" /><div className="content-grid two"><section className="panel"><div className="panel-header"><h2>发布微课</h2><Badge tone="blue">视频或音频</Badge></div><div className="panel-body"><VideoPublisher /></div></section><aside className="panel"><div className="panel-header"><h2>发布建议</h2></div><div className="panel-body grid gap-4 text-sm leading-7 text-zinc-600"><p className="flex gap-2"><FileVideo className="mt-1 shrink-0 text-emerald-700" size={18} />弱网环境建议上传 480p、10 分钟以内的视频，并填写清楚知识点。</p><p className="flex gap-2"><Upload className="mt-1 shrink-0 text-sky-700" size={18} />发布后可在详情中查看匿名评论，并分享到其他演示班级。</p></div></aside></div><section className="panel mt-5"><div className="panel-header"><h2>已发布微课</h2><span className="text-xs text-zinc-500">点击查看评论与分享</span></div>{data.videos.map((video) => <Link href={`/teacher/videos/${video.id}`} className="list-row assignment-link" key={video.id}><span className="row-icon"><PlayCircle size={20} /></span><span className="row-main"><span className="flex gap-2"><Badge tone="green">可学习</Badge><Badge tone="blue">{video.knowledgePoint}</Badge></span><span className="row-title mt-2 block">{video.title}</span><span className="row-meta">{video.description} · {video.durationSeconds ? `${Math.floor(video.durationSeconds / 60)}分${video.durationSeconds % 60}秒 · ` : ""}{formatChineseDate(video.createdAt)}</span></span><span className="record-open-label">查看详情</span></Link>)}</section></main>; }
