@@ -27,7 +27,9 @@ export function getRuntimeConfig(
   return {
     authSecret: readOptional("AUTH_SECRET"),
     schoolInviteCode: readOptional("SCHOOL_INVITE_CODE"),
-    databaseUrl: readOptional("NETLIFY_DB_URL"),
+    databaseUrl:
+      readOptional("NETLIFY_DB_URL") ??
+      readOptional("XIANGKEBAN_DATABASE_URL"),
     ossRegion: readOptional("OSS_REGION"),
     ossBucket: readOptional("OSS_BUCKET"),
     ossAccessKeyId: readOptional("OSS_ACCESS_KEY_ID"),

@@ -5,8 +5,16 @@ import { drizzle } from "drizzle-orm/netlify-db";
 
 import * as schema from "@/db/schema";
 import { first } from "@/lib/db-helpers";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
-export const db = drizzle({ schema });
+const netlifyDatabaseUrl = process.env.NETLIFY_DB_URL?.trim();
+const { databaseUrl } = getRuntimeConfig();
+
+export const db = netlifyDatabaseUrl
+  ? drizzle({ schema })
+  : databaseUrl
+  ? drizzle({ connection: databaseUrl, schema })
+  : drizzle({ schema });
 export const dbReady = Promise.resolve();
 
 export async function getUserByUsername(username: string) {
