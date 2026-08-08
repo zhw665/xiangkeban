@@ -44,6 +44,10 @@ dev-server*.log
 # vercel
 .vercel
 
+# netlify
+.netlify/
+deno.lock
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

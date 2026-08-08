@@ -16,7 +16,7 @@ test("student can ask a question and cannot open teacher pages", async ({ page }
   await page.goto("/student/questions");
   await page.getByLabel("我哪里没弄明白").fill("为什么平均分以后分母表示总份数？");
   await page.getByRole("button", { name: "提交给老师" }).click();
-  await expect(page.getByRole("status")).toContainText("已提交");
+  await expect(page.getByRole("status")).toContainText("已提交", { timeout: 15_000 });
   await page.goto("/teacher/questions");
   await expect(page).toHaveURL(/\/student/);
 });

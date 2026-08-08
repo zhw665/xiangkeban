@@ -69,6 +69,9 @@ importers:
       '@netlify/database-dev':
         specifier: ^0.10.1
         version: 0.10.1
+      '@netlify/plugin-nextjs':
+        specifier: ^5.15.13
+        version: 5.15.13
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
@@ -1308,6 +1311,10 @@ packages:
   '@netlify/otel@6.0.5':
     resolution: {integrity: sha512-FUnQsG+xp5gljmHZgrBgGLYKmKYQlGvrao6gtKenJSPCYTMzsYB9PbFfjIoEvwS+o8DxuWDrHlRDDGU3o9ObhQ==}
     engines: {node: ^18.14.0 || >=20.6.1}
+
+  '@netlify/plugin-nextjs@5.15.13':
+    resolution: {integrity: sha512-gBmWtgG13ZW4ytNMCvacfwZemtdtV/Ekc+6RBYvI5fndjmDvKxgFHylsw7oli+PHMGAtNqaJrN8QccGnDReu6A==}
+    engines: {node: '>=18.0.0'}
 
   '@netlify/plugins-list@6.81.9':
     resolution: {integrity: sha512-89m0E61fwz8+zAtM2RsmPJpvNRwrtuPkmnUDtAeRp5a0Wtxv6pF220nRmWUH5xg7QurNJmjExA/NV+r0XUcidQ==}
@@ -7566,7 +7573,7 @@ snapshots:
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
-      string-width-cjs: string-width@4.2.0
+      string-width-cjs: string-width@4.2.3
       strip-ansi: 7.2.0
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
@@ -8120,6 +8127,8 @@ snapshots:
       '@opentelemetry/sdk-trace-node': 2.9.0(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - supports-color
+
+  '@netlify/plugin-nextjs@5.15.13': {}
 
   '@netlify/plugins-list@6.81.9': {}
 
