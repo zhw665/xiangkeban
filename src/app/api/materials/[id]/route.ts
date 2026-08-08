@@ -7,6 +7,7 @@ import { materials } from "@/db/schema";
 import { jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
+import { firstOrNull } from "@/lib/db-helpers";
 
 const editSchema = z.object({ title: z.string().min(2).max(80), subject: z.string().min(1).max(20), notes: z.string().max(2400), summary: z.string().min(6).max(2400), lessonPlan: z.string().min(10).max(12000) });
 
@@ -19,9 +20,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!parsed.success) return jsonError("请检查备课信息是否完整");
   const { id } = await context.params;
   await dbReady;
-  const material = await db.select().from(materials).where(and(eq(materials.id, id), eq(materials.classId, classroom.id), eq(materials.teacherId, session.user.id))).get();
+  const material = firstOrNull(await db.select().from(materials).where(and(eq(materials.id, id), eq(materials.classId, classroom.id), eq(materials.teacherId, session.user.id))));
   if (!material) return jsonError("备课记录不存在", 404);
-  await db.update(materials).set(parsed.data).where(eq(materials.id, id)).run();
+  await db.update(materials).set(parsed.data).where(eq(materials.id, id));
   await recordAudit(session.user.id, "material.updated", "material", id);
   revalidatePath("/teacher/materials");
   revalidatePath("/student/learn");

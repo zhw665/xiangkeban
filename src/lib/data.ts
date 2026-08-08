@@ -23,6 +23,7 @@ import {
   weeklyReports,
 } from "@/db/schema";
 import { db, dbReady } from "@/lib/db";
+import { firstOrNull } from "@/lib/db-helpers";
 import { getClassContext, getLinkedStudent } from "@/lib/dal";
 
 export async function getTeacherData(userId: string) {
@@ -118,10 +119,10 @@ export async function getAssignmentForStudent(assignmentId: string, studentId: s
   await dbReady;
   const classroom = await getClassContext(studentId, "student");
   if (!classroom) return null;
-  const assignment = await db.select().from(assignments).where(and(eq(assignments.id, assignmentId), eq(assignments.classId, classroom.id), eq(assignments.status, "published"))).get();
+  const assignment = firstOrNull(await db.select().from(assignments).where(and(eq(assignments.id, assignmentId), eq(assignments.classId, classroom.id), eq(assignments.status, "published"))));
   if (!assignment) return null;
-  const items = await db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignmentId)).orderBy(asc(assignmentItems.orderNo)).all();
-  const submission = await db.select().from(submissions).where(and(eq(submissions.assignmentId, assignmentId), eq(submissions.studentId, studentId))).get() ?? null;
+  const items = await db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignmentId)).orderBy(asc(assignmentItems.orderNo));
+  const submission = firstOrNull(await db.select().from(submissions).where(and(eq(submissions.assignmentId, assignmentId), eq(submissions.studentId, studentId))));
   return { assignment, items, submission };
 }
 
@@ -129,12 +130,12 @@ export async function getAssignmentForTeacher(assignmentId: string, teacherId: s
   await dbReady;
   const classroom = await getClassContext(teacherId, "teacher");
   if (!classroom) return null;
-  const assignment = await db.select().from(assignments).where(and(eq(assignments.id, assignmentId), eq(assignments.classId, classroom.id), eq(assignments.teacherId, teacherId))).get();
+  const assignment = firstOrNull(await db.select().from(assignments).where(and(eq(assignments.id, assignmentId), eq(assignments.classId, classroom.id), eq(assignments.teacherId, teacherId))));
   if (!assignment) return null;
   const [items, submissionRows] = await Promise.all([
-    db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignmentId)).orderBy(asc(assignmentItems.orderNo)).all(),
+    db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignmentId)).orderBy(asc(assignmentItems.orderNo)),
     db.select({ id: submissions.id, status: submissions.status, score: submissions.score, answersJson: submissions.answersJson, feedback: submissions.feedback, submittedAt: submissions.submittedAt, studentId: submissions.studentId, studentName: users.name })
-      .from(submissions).innerJoin(users, eq(submissions.studentId, users.id)).where(eq(submissions.assignmentId, assignmentId)).orderBy(desc(submissions.updatedAt)).all(),
+      .from(submissions).innerJoin(users, eq(submissions.studentId, users.id)).where(eq(submissions.assignmentId, assignmentId)).orderBy(desc(submissions.updatedAt)),
   ]);
   return { assignment, items, submissions: submissionRows };
 }
@@ -143,11 +144,11 @@ export async function getVideoForTeacher(videoId: string, teacherId: string) {
   await dbReady;
   const classroom = await getClassContext(teacherId, "teacher");
   if (!classroom) return null;
-  const video = await db.select().from(videos).where(and(eq(videos.id, videoId), eq(videos.classId, classroom.id), eq(videos.teacherId, teacherId))).get();
+  const video = firstOrNull(await db.select().from(videos).where(and(eq(videos.id, videoId), eq(videos.classId, classroom.id), eq(videos.teacherId, teacherId))));
   if (!video) return null;
   const [comments, shares] = await Promise.all([
-    db.select({ id: videoComments.id, anonymousLabel: videoComments.anonymousLabel, content: videoComments.content, createdAt: videoComments.createdAt }).from(videoComments).where(eq(videoComments.videoId, videoId)).orderBy(desc(videoComments.createdAt)).all(),
-    db.select().from(videoShares).where(eq(videoShares.videoId, videoId)).orderBy(desc(videoShares.createdAt)).all(),
+    db.select({ id: videoComments.id, anonymousLabel: videoComments.anonymousLabel, content: videoComments.content, createdAt: videoComments.createdAt }).from(videoComments).where(eq(videoComments.videoId, videoId)).orderBy(desc(videoComments.createdAt)),
+    db.select().from(videoShares).where(eq(videoShares.videoId, videoId)).orderBy(desc(videoShares.createdAt)),
   ]);
   return { video, comments, shares };
 }
@@ -157,9 +158,9 @@ export async function getTeacherGuardianContacts(teacherId: string) {
   const classroom = await getClassContext(teacherId, "teacher");
   if (!classroom) return [];
   const [links, people, members] = await Promise.all([
-    db.select().from(guardianLinks).all(),
-    db.select({ id: users.id, name: users.name, role: users.role }).from(users).all(),
-    db.select().from(classMembers).where(and(eq(classMembers.classId, classroom.id), eq(classMembers.memberRole, "student"))).all(),
+    db.select().from(guardianLinks),
+    db.select({ id: users.id, name: users.name, role: users.role }).from(users),
+    db.select().from(classMembers).where(and(eq(classMembers.classId, classroom.id), eq(classMembers.memberRole, "student"))),
   ]);
   const memberIds = new Set(members.map((item) => item.userId));
   return links.filter((link) => memberIds.has(link.studentId)).map((link) => ({
@@ -201,7 +202,7 @@ export async function getParentData(userId: string) {
 
 export async function getQuestionAnswer(questionId: string) {
   await dbReady;
-  return db.select().from(answers).where(eq(answers.questionId, questionId)).get() ?? null;
+  return firstOrNull(await db.select().from(answers).where(eq(answers.questionId, questionId)));
 }
 
 export async function getAssignmentItemsForTeacher(assignmentIds: string[]) {
@@ -212,6 +213,6 @@ export async function getAssignmentItemsForTeacher(assignmentIds: string[]) {
 
 export async function getUnreadCount(userId: string) {
   await dbReady;
-  const rows = await db.select().from(notifications).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))).all();
+  const rows = await db.select().from(notifications).where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
   return rows.length;
 }

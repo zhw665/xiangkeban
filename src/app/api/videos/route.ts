@@ -35,9 +35,9 @@ export async function POST(request: Request) {
   const storageKey = `${session.user.schoolId}/${classroom.id}/videos/${fileId}${extension}`;
   await getStorageProvider().put(storageKey, Buffer.from(await upload.arrayBuffer()), upload.type);
   await db.transaction(async (tx) => {
-    await tx.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: upload.name, mimeType: upload.type, size: upload.size, storageKey, createdAt: now }).run();
-    await tx.insert(videos).values({ id: videoId, classId: classroom.id, teacherId: session.user.id, fileId, title: parsed.data.title, description: parsed.data.description, knowledgePoint: parsed.data.knowledgePoint, durationSeconds: parsed.data.durationSeconds, status: "ready", createdAt: now }).run();
-    await tx.insert(posts).values({ id: randomUUID(), classId: classroom.id, authorId: session.user.id, videoId, type: "resource", title: parsed.data.title, content: parsed.data.description, visibility: "class", createdAt: now }).run();
+    await tx.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: upload.name, mimeType: upload.type, size: upload.size, storageKey, createdAt: now });
+    await tx.insert(videos).values({ id: videoId, classId: classroom.id, teacherId: session.user.id, fileId, title: parsed.data.title, description: parsed.data.description, knowledgePoint: parsed.data.knowledgePoint, durationSeconds: parsed.data.durationSeconds, status: "ready", createdAt: now });
+    await tx.insert(posts).values({ id: randomUUID(), classId: classroom.id, authorId: session.user.id, videoId, type: "resource", title: parsed.data.title, content: parsed.data.description, visibility: "class", createdAt: now });
   });
   await recordAudit(session.user.id, "video.published", "video", videoId, { fileId, size: upload.size });
   revalidatePath("/teacher/videos");

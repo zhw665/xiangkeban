@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { classMembers, classes, guardianLinks, users } from "@/db/schema";
 import { db, dbReady } from "@/lib/db";
+import { firstOrNull } from "@/lib/db-helpers";
 import type { UserRole } from "@/lib/constants";
 
 export const getSession = cache(async () => auth());
@@ -28,11 +29,13 @@ export async function getApiSession(role?: UserRole) {
 export async function getClassContext(userId: string, role: UserRole) {
   await dbReady;
   if (role === "teacher") {
-    return db.select().from(classes).where(eq(classes.teacherId, userId)).get() ?? null;
+    return firstOrNull(
+      await db.select().from(classes).where(eq(classes.teacherId, userId)),
+    );
   }
 
   if (role === "student") {
-    return db.select({
+    return firstOrNull(await db.select({
       id: classes.id,
       schoolId: classes.schoolId,
       teacherId: classes.teacherId,
@@ -41,10 +44,10 @@ export async function getClassContext(userId: string, role: UserRole) {
       inviteCode: classes.inviteCode,
       createdAt: classes.createdAt,
     }).from(classMembers).innerJoin(classes, eq(classMembers.classId, classes.id))
-      .where(and(eq(classMembers.userId, userId), eq(classMembers.memberRole, "student"))).get() ?? null;
+      .where(and(eq(classMembers.userId, userId), eq(classMembers.memberRole, "student"))));
   }
 
-  return db.select({
+  return firstOrNull(await db.select({
     id: classes.id,
     schoolId: classes.schoolId,
     teacherId: classes.teacherId,
@@ -55,17 +58,17 @@ export async function getClassContext(userId: string, role: UserRole) {
   }).from(guardianLinks)
     .innerJoin(classMembers, eq(guardianLinks.studentId, classMembers.userId))
     .innerJoin(classes, eq(classMembers.classId, classes.id))
-    .where(eq(guardianLinks.guardianId, userId)).get() ?? null;
+    .where(eq(guardianLinks.guardianId, userId)));
 }
 
 export async function getLinkedStudent(guardianId: string) {
   await dbReady;
-  return db.select({
+  return firstOrNull(await db.select({
     id: users.id,
     name: users.name,
     relation: guardianLinks.relation,
   }).from(guardianLinks).innerJoin(users, eq(guardianLinks.studentId, users.id))
-    .where(eq(guardianLinks.guardianId, guardianId)).get() ?? null;
+    .where(eq(guardianLinks.guardianId, guardianId)));
 }
 
 export async function assertClassAccess(userId: string, role: UserRole, classId: string) {

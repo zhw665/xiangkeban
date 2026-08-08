@@ -13,7 +13,7 @@ export function jsonError(message: string, status = 400) {
 
 export async function recordAudit(actorId: string, action: string, entityType: string, entityId: string, metadata: Record<string, unknown> = {}) {
   await dbReady;
-  await db.insert(auditLogs).values({ id: randomUUID(), actorId, action, entityType, entityId, metadata: JSON.stringify(metadata), createdAt: nowIso() }).run();
+  await db.insert(auditLogs).values({ id: randomUUID(), actorId, action, entityType, entityId, metadata: JSON.stringify(metadata), createdAt: nowIso() });
 }
 
 export async function claimOfflineRequest(request: Request, userId: string) {
@@ -21,7 +21,7 @@ export async function claimOfflineRequest(request: Request, userId: string) {
   if (!key) return true;
   try {
     await dbReady;
-    await db.insert(requestKeys).values({ id: key, userId, createdAt: nowIso() }).run();
+    await db.insert(requestKeys).values({ id: key, userId, createdAt: nowIso() });
     return true;
   } catch {
     return false;

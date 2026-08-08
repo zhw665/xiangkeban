@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const storageKey = `${session.user.schoolId}/${classroom.id}/materials/${fileId}${extension}`;
     const buffer = Buffer.from(await file.arrayBuffer());
     await getStorageProvider().put(storageKey, buffer, file.type);
-    await db.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: file.name, mimeType: file.type, size: file.size, storageKey, createdAt: now }).run();
+    await db.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: file.name, mimeType: file.type, size: file.size, storageKey, createdAt: now });
     extracted = await extractFileText(file);
   }
 
@@ -51,8 +51,8 @@ export async function POST(request: Request) {
   const sourceText = extracted || `${parsed.data.title}。${parsed.data.notes}。${analysis.summary}`;
   const chunks = chunkText(sourceText);
   await db.transaction(async (tx) => {
-    await tx.insert(materials).values({ id: materialId, classId: classroom.id, teacherId: session.user.id, fileId, title: parsed.data.title, subject: parsed.data.subject, notes: parsed.data.notes, summary: analysis.summary, lessonPlan: lessonPlanToText(analysis), status: "ready", createdAt: now }).run();
-    if (chunks.length) await tx.insert(materialChunks).values(chunks.map((content, chunkIndex) => ({ id: randomUUID(), materialId, chunkIndex, content }))).run();
+    await tx.insert(materials).values({ id: materialId, classId: classroom.id, teacherId: session.user.id, fileId, title: parsed.data.title, subject: parsed.data.subject, notes: parsed.data.notes, summary: analysis.summary, lessonPlan: lessonPlanToText(analysis), status: "ready", createdAt: now });
+    if (chunks.length) await tx.insert(materialChunks).values(chunks.map((content, chunkIndex) => ({ id: randomUUID(), materialId, chunkIndex, content })));
   });
   await recordAudit(session.user.id, "material.created", "material", materialId, { fileId, chunkCount: chunks.length });
   revalidatePath("/teacher/materials");

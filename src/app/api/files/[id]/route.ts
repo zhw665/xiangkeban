@@ -4,6 +4,7 @@ import { files } from "@/db/schema";
 import { jsonError } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
+import { firstOrNull } from "@/lib/db-helpers";
 import { getStorageProvider } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -13,7 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!session) return jsonError("请先登录", 401);
   await dbReady;
   const { id } = await context.params;
-  const file = await db.select().from(files).where(eq(files.id, id)).get();
+  const file = firstOrNull(await db.select().from(files).where(eq(files.id, id)));
   if (!file || file.schoolId !== session.user.schoolId) return jsonError("文件不存在", 404);
   if (file.classId) {
     const classroom = await getClassContext(session.user.id, session.user.role);

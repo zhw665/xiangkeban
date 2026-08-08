@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   await dbReady;
-  const contextRows = await db.select({ content: materialChunks.content }).from(materialChunks).innerJoin(materials, eq(materialChunks.materialId, materials.id)).where(eq(materials.classId, classroom.id)).all();
+  const contextRows = await db.select({ content: materialChunks.content }).from(materialChunks).innerJoin(materials, eq(materialChunks.materialId, materials.id)).where(eq(materials.classId, classroom.id));
   const analysis = await getAIProvider().classifyQuestion({ ...parsed.data, grade: classroom.grade, context: contextRows.slice(0, 3).map((item) => item.content) });
   const now = nowIso();
   let attachmentId: string | null = null;
@@ -49,12 +49,12 @@ export async function POST(request: Request) {
     const extension = path.extname(attachment.name).toLowerCase().replace(/[^.a-z0-9]/g, "") || ".jpg";
     const storageKey = `${session.user.schoolId}/${classroom.id}/questions/${attachmentId}${extension}`;
     await getStorageProvider().put(storageKey, Buffer.from(await attachment.arrayBuffer()), attachment.type);
-    await db.insert(files).values({ id: attachmentId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: attachment.name, mimeType: attachment.type, size: attachment.size, storageKey, createdAt: now }).run();
+    await db.insert(files).values({ id: attachmentId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: attachment.name, mimeType: attachment.type, size: attachment.size, storageKey, createdAt: now });
   }
   const questionId = randomUUID();
   await db.transaction(async (tx) => {
-    await tx.insert(questions).values({ id: questionId, classId: classroom.id, studentId: session.user.id, attachmentId, subject: parsed.data.subject, content: parsed.data.content, aiCategory: analysis.category, knowledgePoint: analysis.knowledgePoint, urgency: analysis.urgency, aiHint: analysis.hint, aiDraft: analysis.draftAnswer, status: "pending", isPublic: false, createdAt: now }).run();
-    await tx.insert(notifications).values({ id: randomUUID(), userId: classroom.teacherId, title: analysis.urgency === "attention" ? "有一条求助需要关注" : "有新问题待处理", body: parsed.data.content.slice(0, 60), type: "question", href: "/teacher/questions", readAt: null, createdAt: now }).run();
+    await tx.insert(questions).values({ id: questionId, classId: classroom.id, studentId: session.user.id, attachmentId, subject: parsed.data.subject, content: parsed.data.content, aiCategory: analysis.category, knowledgePoint: analysis.knowledgePoint, urgency: analysis.urgency, aiHint: analysis.hint, aiDraft: analysis.draftAnswer, status: "pending", isPublic: false, createdAt: now });
+    await tx.insert(notifications).values({ id: randomUUID(), userId: classroom.teacherId, title: analysis.urgency === "attention" ? "有一条求助需要关注" : "有新问题待处理", body: parsed.data.content.slice(0, 60), type: "question", href: "/teacher/questions", readAt: null, createdAt: now });
   });
   await recordAudit(session.user.id, "question.created", "question", questionId, { category: analysis.category, urgency: analysis.urgency });
   revalidatePath("/student/questions");

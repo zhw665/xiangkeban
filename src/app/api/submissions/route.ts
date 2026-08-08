@@ -8,6 +8,7 @@ import { assignmentItems, assignments, notifications, submissions } from "@/db/s
 import { claimOfflineRequest, jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
+import { firstOrNull } from "@/lib/db-helpers";
 import { gradeSubmission } from "@/lib/grading";
 import { nowIso } from "@/lib/utils";
 
@@ -22,17 +23,17 @@ export async function POST(request: Request) {
   const classroom = await getClassContext(session.user.id, "student");
   if (!classroom) return jsonError("未找到班级", 404);
   await dbReady;
-  const assignment = await db.select().from(assignments).where(and(eq(assignments.id, parsed.data.assignmentId), eq(assignments.classId, classroom.id), eq(assignments.status, "published"))).get();
+  const assignment = firstOrNull(await db.select().from(assignments).where(and(eq(assignments.id, parsed.data.assignmentId), eq(assignments.classId, classroom.id), eq(assignments.status, "published"))));
   if (!assignment) return jsonError("作业不存在或已经关闭", 404);
-  const items = await db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignment.id)).all();
+  const items = await db.select().from(assignmentItems).where(eq(assignmentItems.assignmentId, assignment.id));
   const result = gradeSubmission(items.map((item) => ({ id: item.id, type: item.type, answer: item.answer, points: item.points })), parsed.data.answers);
   const now = nowIso();
-  const existing = await db.select().from(submissions).where(and(eq(submissions.assignmentId, assignment.id), eq(submissions.studentId, session.user.id))).get();
+  const existing = firstOrNull(await db.select().from(submissions).where(and(eq(submissions.assignmentId, assignment.id), eq(submissions.studentId, session.user.id))));
   const submissionId = existing?.id ?? randomUUID();
   await db.transaction(async (tx) => {
-    if (existing) await tx.update(submissions).set({ status: "graded", score: result.score, answersJson: JSON.stringify(parsed.data.answers), feedback: result.feedback, submittedAt: now, updatedAt: now }).where(eq(submissions.id, existing.id)).run();
-    else await tx.insert(submissions).values({ id: submissionId, assignmentId: assignment.id, studentId: session.user.id, status: "graded", score: result.score, answersJson: JSON.stringify(parsed.data.answers), feedback: result.feedback, submittedAt: now, updatedAt: now }).run();
-    await tx.insert(notifications).values({ id: randomUUID(), userId: classroom.teacherId, title: "学生提交了作业", body: assignment.title, type: "submission", href: "/teacher/assignments", readAt: null, createdAt: now }).run();
+    if (existing) await tx.update(submissions).set({ status: "graded", score: result.score, answersJson: JSON.stringify(parsed.data.answers), feedback: result.feedback, submittedAt: now, updatedAt: now }).where(eq(submissions.id, existing.id));
+    else await tx.insert(submissions).values({ id: submissionId, assignmentId: assignment.id, studentId: session.user.id, status: "graded", score: result.score, answersJson: JSON.stringify(parsed.data.answers), feedback: result.feedback, submittedAt: now, updatedAt: now });
+    await tx.insert(notifications).values({ id: randomUUID(), userId: classroom.teacherId, title: "学生提交了作业", body: assignment.title, type: "submission", href: "/teacher/assignments", readAt: null, createdAt: now });
   });
   await recordAudit(session.user.id, "submission.submitted", "submission", submissionId, { score: result.score, missed: result.missed });
   revalidatePath("/student/assignments");
