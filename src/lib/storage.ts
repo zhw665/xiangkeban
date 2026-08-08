@@ -32,12 +32,16 @@ class LocalStorageProvider implements StorageProvider {
 }
 
 class OssStorageProvider implements StorageProvider {
-  private client = new OSS({
-    region: process.env.OSS_REGION!,
-    bucket: process.env.OSS_BUCKET!,
-    accessKeyId: process.env.OSS_ACCESS_KEY_ID!,
-    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET!,
-  });
+  private client: OSS;
+
+  constructor(config: {
+    region: string;
+    bucket: string;
+    accessKeyId: string;
+    accessKeySecret: string;
+  }) {
+    this.client = new OSS(config);
+  }
 
   async put(key: string, data: Buffer, mimeType: string) {
     await this.client.put(key, data, { headers: { "Content-Type": mimeType } });
@@ -49,9 +53,43 @@ class OssStorageProvider implements StorageProvider {
   }
 }
 
-export function getStorageProvider(): StorageProvider {
-  const configured = process.env.OSS_REGION && process.env.OSS_BUCKET && process.env.OSS_ACCESS_KEY_ID && process.env.OSS_ACCESS_KEY_SECRET;
-  return configured ? new OssStorageProvider() : new LocalStorageProvider();
+export class StorageConfigurationError extends Error {
+  constructor() {
+    super("Storage is not configured");
+    this.name = "StorageConfigurationError";
+  }
+}
+
+export function isStorageConfigurationError(
+  error: unknown,
+): error is StorageConfigurationError {
+  return error instanceof StorageConfigurationError;
+}
+
+export function getStorageProvider(
+  mode: "development" | "production" | "test" =
+    (process.env.NODE_ENV as "development" | "production" | "test" | undefined) ??
+    "development",
+): StorageProvider {
+  const values = {
+    region: process.env.OSS_REGION?.trim(),
+    bucket: process.env.OSS_BUCKET?.trim(),
+    accessKeyId: process.env.OSS_ACCESS_KEY_ID?.trim(),
+    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET?.trim(),
+  };
+  const configured = Object.values(values).every(Boolean);
+  if (configured) {
+    return new OssStorageProvider(values as {
+      region: string;
+      bucket: string;
+      accessKeyId: string;
+      accessKeySecret: string;
+    });
+  }
+  if (mode === "production" || Object.values(values).some(Boolean)) {
+    throw new StorageConfigurationError();
+  }
+  return new LocalStorageProvider();
 }
 
 export const uploadRules = {

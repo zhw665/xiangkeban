@@ -10,7 +10,7 @@ import { getAIProvider } from "@/lib/ai";
 import { claimOfflineRequest, jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
-import { getStorageProvider, validateUpload } from "@/lib/storage";
+import { getStorageProvider, isStorageConfigurationError, validateUpload } from "@/lib/storage";
 import { nowIso } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -48,7 +48,12 @@ export async function POST(request: Request) {
     attachmentId = randomUUID();
     const extension = path.extname(attachment.name).toLowerCase().replace(/[^.a-z0-9]/g, "") || ".jpg";
     const storageKey = `${session.user.schoolId}/${classroom.id}/questions/${attachmentId}${extension}`;
-    await getStorageProvider().put(storageKey, Buffer.from(await attachment.arrayBuffer()), attachment.type);
+    try {
+      await getStorageProvider().put(storageKey, Buffer.from(await attachment.arrayBuffer()), attachment.type);
+    } catch (error) {
+      if (isStorageConfigurationError(error)) return jsonError("文件存储服务暂不可用", 503);
+      throw error;
+    }
     await db.insert(files).values({ id: attachmentId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: attachment.name, mimeType: attachment.type, size: attachment.size, storageKey, createdAt: now });
   }
   const questionId = randomUUID();

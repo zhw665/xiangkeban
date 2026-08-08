@@ -10,7 +10,7 @@ import { jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
 import { nowIso } from "@/lib/utils";
-import { getStorageProvider, validateUpload } from "@/lib/storage";
+import { getStorageProvider, isStorageConfigurationError, validateUpload } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -46,7 +46,12 @@ export async function POST(request: Request) {
     fileId = randomUUID();
     const extension = path.extname(attachment.name).toLowerCase().replace(/[^.a-z0-9]/g, "") || ".bin";
     const storageKey = `${session.user.schoolId}/${classroom.id}/assignments/${fileId}${extension}`;
-    await getStorageProvider().put(storageKey, Buffer.from(await attachment.arrayBuffer()), attachment.type);
+    try {
+      await getStorageProvider().put(storageKey, Buffer.from(await attachment.arrayBuffer()), attachment.type);
+    } catch (error) {
+      if (isStorageConfigurationError(error)) return jsonError("文件存储服务暂不可用", 503);
+      throw error;
+    }
     await db.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: attachment.name, mimeType: attachment.type, size: attachment.size, storageKey, createdAt: now });
   }
   const students = await db.select().from(classMembers).where(eq(classMembers.classId, classroom.id));

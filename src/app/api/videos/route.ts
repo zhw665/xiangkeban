@@ -8,7 +8,7 @@ import { files, posts, videos } from "@/db/schema";
 import { jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
-import { getStorageProvider, validateUpload } from "@/lib/storage";
+import { getStorageProvider, isStorageConfigurationError, validateUpload } from "@/lib/storage";
 import { nowIso } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -33,7 +33,12 @@ export async function POST(request: Request) {
   const videoId = randomUUID();
   const extension = path.extname(upload.name).toLowerCase().replace(/[^.a-z0-9]/g, "") || (upload.type.includes("mp4") ? ".mp4" : ".webm");
   const storageKey = `${session.user.schoolId}/${classroom.id}/videos/${fileId}${extension}`;
-  await getStorageProvider().put(storageKey, Buffer.from(await upload.arrayBuffer()), upload.type);
+  try {
+    await getStorageProvider().put(storageKey, Buffer.from(await upload.arrayBuffer()), upload.type);
+  } catch (error) {
+    if (isStorageConfigurationError(error)) return jsonError("文件存储服务暂不可用", 503);
+    throw error;
+  }
   await db.transaction(async (tx) => {
     await tx.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: upload.name, mimeType: upload.type, size: upload.size, storageKey, createdAt: now });
     await tx.insert(videos).values({ id: videoId, classId: classroom.id, teacherId: session.user.id, fileId, title: parsed.data.title, description: parsed.data.description, knowledgePoint: parsed.data.knowledgePoint, durationSeconds: parsed.data.durationSeconds, status: "ready", createdAt: now });

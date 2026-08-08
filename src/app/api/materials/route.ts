@@ -10,7 +10,7 @@ import { jsonError, recordAudit } from "@/lib/api";
 import { getApiSession, getClassContext } from "@/lib/dal";
 import { db, dbReady } from "@/lib/db";
 import { chunkText, extractFileText } from "@/lib/file-text";
-import { getStorageProvider, validateUpload } from "@/lib/storage";
+import { getStorageProvider, isStorageConfigurationError, validateUpload } from "@/lib/storage";
 import { nowIso } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -41,7 +41,12 @@ export async function POST(request: Request) {
     const extension = path.extname(file.name).toLowerCase().replace(/[^.a-z0-9]/g, "") || ".bin";
     const storageKey = `${session.user.schoolId}/${classroom.id}/materials/${fileId}${extension}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await getStorageProvider().put(storageKey, buffer, file.type);
+    try {
+      await getStorageProvider().put(storageKey, buffer, file.type);
+    } catch (error) {
+      if (isStorageConfigurationError(error)) return jsonError("文件存储服务暂不可用", 503);
+      throw error;
+    }
     await db.insert(files).values({ id: fileId, schoolId: session.user.schoolId, classId: classroom.id, ownerId: session.user.id, name: file.name, mimeType: file.type, size: file.size, storageKey, createdAt: now });
     extracted = await extractFileText(file);
   }

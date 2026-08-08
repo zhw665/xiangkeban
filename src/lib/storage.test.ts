@@ -1,5 +1,44 @@
-import { describe, expect, it } from "vitest";
-import { validateUpload } from "@/lib/storage";
+import { afterEach, describe, expect, it } from "vitest";
+import { getStorageProvider, validateUpload } from "@/lib/storage";
+
+const ossKeys = [
+  "OSS_REGION",
+  "OSS_BUCKET",
+  "OSS_ACCESS_KEY_ID",
+  "OSS_ACCESS_KEY_SECRET",
+] as const;
+const originalOssEnvironment = Object.fromEntries(
+  ossKeys.map((key) => [key, process.env[key]]),
+);
+
+afterEach(() => {
+  for (const key of ossKeys) {
+    if (originalOssEnvironment[key] === undefined) delete process.env[key];
+    else process.env[key] = originalOssEnvironment[key];
+  }
+});
+
+describe("getStorageProvider", () => {
+  it("rejects missing OSS configuration in production", () => {
+    for (const key of ossKeys) delete process.env[key];
+
+    expect(() => getStorageProvider("production")).toThrow(
+      "Storage is not configured",
+    );
+  });
+
+  it("allows local storage only outside production", () => {
+    for (const key of ossKeys) delete process.env[key];
+
+    expect(() => getStorageProvider("development")).not.toThrow();
+  });
+
+  it("creates an OSS provider when all values are present", () => {
+    for (const key of ossKeys) process.env[key] = `test-${key.toLowerCase()}`;
+
+    expect(() => getStorageProvider("production")).not.toThrow();
+  });
+});
 
 describe("validateUpload", () => {
   it("accepts supported classroom files", () => expect(validateUpload(new File(["lesson"], "lesson.txt", { type: "text/plain" }), "material")).toBeNull());

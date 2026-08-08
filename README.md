@@ -1,21 +1,53 @@
 # 乡课伴
 
-面向乡村学校试点的教师、学生、家长三端协同平台。教师可 AI 辅助备课、处理问题、发布作业与微课；学生可学习、提交作业和提问；家长只查看已绑定孩子的学情、通知并与教师异步沟通。
+面向乡村学校试点的教师、学生、家长三端协同平台。生产架构使用 Next.js、Netlify OpenNext、Netlify Database PostgreSQL、Drizzle ORM、Auth.js 和阿里云 OSS。
 
-## 本地运行
+## 演示账号
 
-复制 `.env.example` 为 `.env.local`，至少设置一个随机的 `AUTH_SECRET`。未配置百炼和 OSS 时，系统会自动使用确定性的本地 AI 演示数据、SQLite 与本地文件存储。
-
-```powershell
-pnpm install
-pnpm dev
-```
-
-演示账号密码均为 `demo1234`：
+三个演示账号的密码均为 `demo1234`：
 
 - 教师：`teacher`
 - 学生：`student`
 - 家长：`parent`
+
+## 环境变量
+
+生产环境必须配置以下秘密变量：
+
+- `AUTH_SECRET`：Auth.js 长随机密钥。
+- `SCHOOL_INVITE_CODE`：教师注册使用的学校邀请码。
+- `OSS_REGION`
+- `OSS_BUCKET`
+- `OSS_ACCESS_KEY_ID`
+- `OSS_ACCESS_KEY_SECRET`
+
+Netlify Database 自动管理 `NETLIFY_DB_URL`，不要手工提交连接串。百炼为可选能力；配置 `DASHSCOPE_API_KEY` 后使用指定模型，未配置时使用确定性演示结果。所有真实值只保存在 `.env.local` 或 Netlify 环境变量中。
+
+## 本地开发
+
+需要 Node.js 22、pnpm 11.16 和 Netlify 账号。首次运行：
+
+```powershell
+pnpm install
+pnpm exec netlify login
+pnpm exec netlify init
+pnpm exec netlify database init
+pnpm exec netlify database migrations apply
+pnpm exec netlify dev
+```
+
+`netlify dev` 提供本地 PostgreSQL 和与生产一致的 Next.js 运行环境。生产上传必须使用 OSS；本地开发在未配置 OSS 时使用 `data/uploads`。
+
+## 数据库迁移
+
+唯一 schema 位于 `src/db/schema.ts`，Netlify migration 位于 `netlify/database/migrations/`。
+
+```powershell
+pnpm db:generate
+pnpm exec netlify database migrations apply
+```
+
+部署时 Netlify 会按名称顺序自动应用尚未执行的 migration。演示数据 migration 使用固定 ID 和 `ON CONFLICT DO NOTHING`，可重复部署。
 
 ## 验证
 
@@ -23,6 +55,15 @@ pnpm dev
 pnpm typecheck
 pnpm lint
 pnpm test
-pnpm test:e2e
 pnpm build
+pnpm test:e2e
 ```
+
+## 部署与回滚
+
+```powershell
+pnpm exec netlify deploy --build
+pnpm exec netlify deploy --build --prod
+```
+
+回滚应用版本时，在 Netlify 的 Deploys 页面选择上一个稳定部署并发布。数据库 migration 采用向前修复策略；不要直接删除生产表或回退已应用 migration。
