@@ -19,12 +19,10 @@ afterEach(() => {
 });
 
 describe("getStorageProvider", () => {
-  it("rejects missing OSS configuration in production", () => {
+  it("uses Netlify storage when OSS is missing in production", () => {
     for (const key of ossKeys) delete process.env[key];
 
-    expect(() => getStorageProvider("production")).toThrow(
-      "Storage is not configured",
-    );
+    expect(() => getStorageProvider("production")).not.toThrow();
   });
 
   it("allows local storage only outside production", () => {
@@ -37,6 +35,15 @@ describe("getStorageProvider", () => {
     for (const key of ossKeys) process.env[key] = `test-${key.toLowerCase()}`;
 
     expect(() => getStorageProvider("production")).not.toThrow();
+  });
+
+  it("rejects partial OSS configuration", () => {
+    for (const key of ossKeys) delete process.env[key];
+    process.env.OSS_BUCKET = "partially-configured";
+
+    expect(() => getStorageProvider("production")).toThrow(
+      "Storage is not configured",
+    );
   });
 });
 

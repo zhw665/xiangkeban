@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@netlify/blobs':
+        specifier: ^10.7.12
+        version: 10.7.12(supports-color@10.2.2)
       '@netlify/database':
         specifier: ^1.1.0
         version: 1.1.0

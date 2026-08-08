@@ -31,7 +31,9 @@ describe("getRuntimeConfig", () => {
   });
 
   test("allows optional DashScope configuration", () => {
-    for (const key of keys) process.env[key] = `test-${key.toLowerCase()}`;
+    for (const key of keys) delete process.env[key];
+    process.env.AUTH_SECRET = "test-auth-secret";
+    process.env.SCHOOL_INVITE_CODE = "test-school-code";
 
     expect(getRuntimeConfig("production").dashScopeApiKey).toBeUndefined();
   });

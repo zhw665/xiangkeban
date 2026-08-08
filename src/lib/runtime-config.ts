@@ -3,10 +3,6 @@ import "server-only";
 const productionKeys = [
   "AUTH_SECRET",
   "SCHOOL_INVITE_CODE",
-  "OSS_REGION",
-  "OSS_BUCKET",
-  "OSS_ACCESS_KEY_ID",
-  "OSS_ACCESS_KEY_SECRET",
 ] as const;
 
 type RuntimeMode = "development" | "production" | "test";

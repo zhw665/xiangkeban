@@ -1,6 +1,6 @@
 # 乡课伴
 
-面向乡村学校试点的教师、学生、家长三端协同平台。生产架构使用 Next.js、Netlify OpenNext、Netlify Database PostgreSQL、Drizzle ORM、Auth.js 和阿里云 OSS。
+面向乡村学校试点的教师、学生、家长三端协同平台。生产架构使用 Next.js、Netlify OpenNext、Netlify Database PostgreSQL、Netlify Blobs、Drizzle ORM 和 Auth.js。
 
 ## 演示账号
 
@@ -16,12 +16,10 @@
 
 - `AUTH_SECRET`：Auth.js 长随机密钥。
 - `SCHOOL_INVITE_CODE`：教师注册使用的学校邀请码。
-- `OSS_REGION`
-- `OSS_BUCKET`
-- `OSS_ACCESS_KEY_ID`
-- `OSS_ACCESS_KEY_SECRET`
 
-Netlify Database 自动管理 `NETLIFY_DB_URL`，不要手工提交连接串。百炼为可选能力；配置 `DASHSCOPE_API_KEY` 后使用指定模型，未配置时使用确定性演示结果。所有真实值只保存在 `.env.local` 或 Netlify 环境变量中。
+Netlify Database 自动管理 `NETLIFY_DB_URL`，文件默认保存到站点级 Netlify Blobs，不需要额外密钥。百炼为可选能力；配置 `DASHSCOPE_API_KEY` 后使用指定模型，未配置时使用确定性演示结果。所有真实值只保存在 `.env.local` 或 Netlify 环境变量中。
+
+如需切换阿里云 OSS，必须同时配置 `OSS_REGION`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID` 和 `OSS_ACCESS_KEY_SECRET`；只配置其中一部分会被视为错误配置。
 
 ## 本地开发
 
@@ -36,7 +34,7 @@ pnpm exec netlify database migrations apply
 pnpm exec netlify dev
 ```
 
-`netlify dev` 提供本地 PostgreSQL 和与生产一致的 Next.js 运行环境。生产上传必须使用 OSS；本地开发在未配置 OSS 时使用 `data/uploads`。
+`netlify dev` 提供本地 PostgreSQL 和与生产一致的 Next.js 运行环境。生产上传默认使用 Netlify Blobs；本地开发在未配置 OSS 时使用 `data/uploads`。
 
 ## 数据库迁移
 

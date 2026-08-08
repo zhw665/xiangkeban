@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getStore } from "@netlify/blobs";
 import OSS from "ali-oss";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -60,6 +61,26 @@ export class StorageConfigurationError extends Error {
   }
 }
 
+class NetlifyBlobStorageProvider implements StorageProvider {
+  private get store() {
+    return getStore("xiangkeban-uploads");
+  }
+
+  async put(key: string, data: Buffer, mimeType: string) {
+    const value = data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength,
+    ) as ArrayBuffer;
+    await this.store.set(key, value, { metadata: { mimeType } });
+  }
+
+  async get(key: string) {
+    const value = await this.store.get(key, { type: "arrayBuffer" });
+    if (!value) throw new Error("Stored file not found");
+    return Buffer.from(value);
+  }
+}
+
 export function isStorageConfigurationError(
   error: unknown,
 ): error is StorageConfigurationError {
@@ -86,9 +107,10 @@ export function getStorageProvider(
       accessKeySecret: string;
     });
   }
-  if (mode === "production" || Object.values(values).some(Boolean)) {
+  if (Object.values(values).some(Boolean)) {
     throw new StorageConfigurationError();
   }
+  if (mode === "production") return new NetlifyBlobStorageProvider();
   return new LocalStorageProvider();
 }
 
