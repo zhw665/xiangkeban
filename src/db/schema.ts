@@ -1,17 +1,17 @@
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, index, integer, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 
 const timestamps = {
   createdAt: text("created_at").notNull(),
 };
 
-export const schools = sqliteTable("schools", {
+export const schools = pgTable("schools", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   region: text("region").notNull(),
   ...timestamps,
 });
 
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   schoolId: text("school_id").notNull().references(() => schools.id),
   username: text("username").notNull().unique(),
@@ -22,7 +22,7 @@ export const users = sqliteTable("users", {
   ...timestamps,
 }, (table) => [index("users_school_idx").on(table.schoolId)]);
 
-export const classes = sqliteTable("classes", {
+export const classes = pgTable("classes", {
   id: text("id").primaryKey(),
   schoolId: text("school_id").notNull().references(() => schools.id),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -32,21 +32,31 @@ export const classes = sqliteTable("classes", {
   ...timestamps,
 }, (table) => [index("classes_school_idx").on(table.schoolId)]);
 
-export const classMembers = sqliteTable("class_members", {
+export const classMembers = pgTable("class_members", {
   classId: text("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   memberRole: text("member_role").notNull(),
   joinedAt: text("joined_at").notNull(),
 }, (table) => [primaryKey({ columns: [table.classId, table.userId] })]);
 
-export const guardianLinks = sqliteTable("guardian_links", {
+export const guardianLinks = pgTable("guardian_links", {
   guardianId: text("guardian_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   studentId: text("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   relation: text("relation").notNull(),
   ...timestamps,
 }, (table) => [primaryKey({ columns: [table.guardianId, table.studentId] })]);
 
-export const files = sqliteTable("files", {
+export const guardianLinkCodes = pgTable("guardian_link_codes", {
+  id: text("id").primaryKey(),
+  studentId: text("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdBy: text("created_by").notNull().references(() => users.id),
+  ...timestamps,
+});
+
+export const files = pgTable("files", {
   id: text("id").primaryKey(),
   schoolId: text("school_id").notNull().references(() => schools.id),
   classId: text("class_id").references(() => classes.id),
@@ -58,7 +68,7 @@ export const files = sqliteTable("files", {
   ...timestamps,
 });
 
-export const materials = sqliteTable("materials", {
+export const materials = pgTable("materials", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -72,14 +82,14 @@ export const materials = sqliteTable("materials", {
   ...timestamps,
 }, (table) => [index("materials_class_idx").on(table.classId)]);
 
-export const materialChunks = sqliteTable("material_chunks", {
+export const materialChunks = pgTable("material_chunks", {
   id: text("id").primaryKey(),
   materialId: text("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
   chunkIndex: integer("chunk_index").notNull(),
   content: text("content").notNull(),
 });
 
-export const questions = sqliteTable("questions", {
+export const questions = pgTable("questions", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   studentId: text("student_id").notNull().references(() => users.id),
@@ -92,11 +102,11 @@ export const questions = sqliteTable("questions", {
   aiHint: text("ai_hint").notNull(),
   aiDraft: text("ai_draft").notNull(),
   status: text("status", { enum: ["sorting", "pending", "answered", "published"] }).notNull(),
-  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
+  isPublic: boolean("is_public").notNull().default(false),
   ...timestamps,
 }, (table) => [index("questions_class_status_idx").on(table.classId, table.status)]);
 
-export const answers = sqliteTable("answers", {
+export const answers = pgTable("answers", {
   id: text("id").primaryKey(),
   questionId: text("question_id").notNull().references(() => questions.id, { onDelete: "cascade" }),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -104,7 +114,7 @@ export const answers = sqliteTable("answers", {
   publishedAt: text("published_at").notNull(),
 });
 
-export const assignments = sqliteTable("assignments", {
+export const assignments = pgTable("assignments", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -117,7 +127,7 @@ export const assignments = sqliteTable("assignments", {
   ...timestamps,
 }, (table) => [index("assignments_class_idx").on(table.classId)]);
 
-export const assignmentItems = sqliteTable("assignment_items", {
+export const assignmentItems = pgTable("assignment_items", {
   id: text("id").primaryKey(),
   assignmentId: text("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
   prompt: text("prompt").notNull(),
@@ -128,7 +138,7 @@ export const assignmentItems = sqliteTable("assignment_items", {
   orderNo: integer("order_no").notNull(),
 });
 
-export const submissions = sqliteTable("submissions", {
+export const submissions = pgTable("submissions", {
   id: text("id").primaryKey(),
   assignmentId: text("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
   studentId: text("student_id").notNull().references(() => users.id),
@@ -140,7 +150,7 @@ export const submissions = sqliteTable("submissions", {
   updatedAt: text("updated_at").notNull(),
 }, (table) => [index("submissions_student_idx").on(table.studentId)]);
 
-export const videos = sqliteTable("videos", {
+export const videos = pgTable("videos", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -153,7 +163,7 @@ export const videos = sqliteTable("videos", {
   ...timestamps,
 });
 
-export const videoComments = sqliteTable("video_comments", {
+export const videoComments = pgTable("video_comments", {
   id: text("id").primaryKey(),
   videoId: text("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
   studentId: text("student_id").references(() => users.id),
@@ -162,7 +172,7 @@ export const videoComments = sqliteTable("video_comments", {
   createdAt: text("created_at").notNull(),
 }, (table) => [index("video_comments_video_idx").on(table.videoId)]);
 
-export const videoShares = sqliteTable("video_shares", {
+export const videoShares = pgTable("video_shares", {
   id: text("id").primaryKey(),
   videoId: text("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
   teacherId: text("teacher_id").notNull().references(() => users.id),
@@ -170,7 +180,7 @@ export const videoShares = sqliteTable("video_shares", {
   createdAt: text("created_at").notNull(),
 }, (table) => [index("video_shares_video_idx").on(table.videoId)]);
 
-export const posts = sqliteTable("posts", {
+export const posts = pgTable("posts", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   authorId: text("author_id").notNull().references(() => users.id),
@@ -182,7 +192,7 @@ export const posts = sqliteTable("posts", {
   ...timestamps,
 });
 
-export const messages = sqliteTable("messages", {
+export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   senderId: text("sender_id").notNull().references(() => users.id),
@@ -194,7 +204,7 @@ export const messages = sqliteTable("messages", {
   ...timestamps,
 }, (table) => [index("messages_class_idx").on(table.classId, table.createdAt)]);
 
-export const observations = sqliteTable("observations", {
+export const observations = pgTable("observations", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   studentId: text("student_id").notNull().references(() => users.id),
@@ -203,10 +213,10 @@ export const observations = sqliteTable("observations", {
   content: text("content").notNull(),
   rating: integer("rating").notNull(),
   occurredAt: text("occurred_at").notNull(),
-  visibleToGuardian: integer("visible_to_guardian", { mode: "boolean" }).notNull().default(true),
+  visibleToGuardian: boolean("visible_to_guardian").notNull().default(true),
 });
 
-export const weeklyReports = sqliteTable("weekly_reports", {
+export const weeklyReports = pgTable("weekly_reports", {
   id: text("id").primaryKey(),
   classId: text("class_id").notNull().references(() => classes.id),
   studentId: text("student_id").notNull().references(() => users.id),
@@ -219,7 +229,7 @@ export const weeklyReports = sqliteTable("weekly_reports", {
   ...timestamps,
 });
 
-export const notifications = sqliteTable("notifications", {
+export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
@@ -230,7 +240,7 @@ export const notifications = sqliteTable("notifications", {
   ...timestamps,
 });
 
-export const auditLogs = sqliteTable("audit_logs", {
+export const auditLogs = pgTable("audit_logs", {
   id: text("id").primaryKey(),
   actorId: text("actor_id").notNull().references(() => users.id),
   action: text("action").notNull(),
@@ -240,7 +250,7 @@ export const auditLogs = sqliteTable("audit_logs", {
   ...timestamps,
 });
 
-export const requestKeys = sqliteTable("request_keys", {
+export const requestKeys = pgTable("request_keys", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   ...timestamps,

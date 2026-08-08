@@ -1,10 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  dialect: "sqlite",
+  dialect: "postgresql",
   schema: "./src/db/schema.ts",
-  out: "./drizzle",
+  out: "./netlify/database/migrations",
   dbCredentials: {
-    url: process.env.DATABASE_PATH ?? "./data/xiangke.db",
+    url: process.env.NETLIFY_DB_URL ?? "postgresql://localhost:5432/xiangke",
   },
 });
