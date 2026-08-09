@@ -10,6 +10,20 @@ async function enter(page: Page, role: "教师端" | "学生端" | "家长端") 
   await expect(page).toHaveURL(new RegExp(`/${path}$`));
 }
 
+test("login page centers the login form without a classroom image", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/login");
+
+  await expect(page.locator(".login-page img")).toHaveCount(0);
+  const loginBox = await page.locator(".login-box").boundingBox();
+  expect(loginBox).not.toBeNull();
+
+  const centerX = loginBox!.x + loginBox!.width / 2;
+  const centerY = loginBox!.y + loginBox!.height / 2;
+  expect(Math.abs(centerX - 640)).toBeLessThanOrEqual(2);
+  expect(Math.abs(centerY - 450)).toBeLessThanOrEqual(2);
+});
+
 test("student can ask a question and cannot open teacher pages", async ({ page }) => {
   await enter(page, "学生端");
   await expect(page.getByRole("heading", { name: /今天好/ })).toBeVisible();

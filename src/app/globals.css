@@ -398,6 +398,7 @@ button.group-member-row:hover > svg { color: var(--primary); }
   .page-wrap { padding: 30px 32px 48px; }
   .topbar { padding: 0 32px; }
   .login-page { grid-template-columns: minmax(420px, .95fr) minmax(520px, 1.05fr); }
+  .login-page.login-page-centered { grid-template-columns: minmax(0, 1fr); }
   .login-visual { display: block; }
 }
 
